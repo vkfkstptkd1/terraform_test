@@ -37,13 +37,13 @@ resource "terraform_data" "apply" {
 	host = openstack_networking_floatingip_v2.floating_ip.address
   }
   provisioner "file" {
-  	source = "/root/terraformlab/ch5_test1/test.sh"
-	destination = "/home/rocky/test.sh"
+  	source = "/root/terraformlab/ch5_test1/httpd.sh"
+	destination = "/home/rocky/httpd.sh"
   }
   provisioner "remote-exec" {
 	inline = [
-	  "chmod +x /home/rocky/test.sh",
-	  "sudo /bin/bash /home/rocky/test.sh"
+	  "chmod +x /home/rocky/httpd.sh",
+	  "sudo /bin/bash /home/rocky/httpd.sh"
 	]
   }
   triggers_replace = [ 
