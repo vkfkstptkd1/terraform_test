@@ -1,0 +1,15 @@
+[0m[1mopenstack_networking_floatingip_v2.floating_ip: Refreshing state... [id=0b2faf5d-a418-41a4-b614-d24aa5a59420][0m
+[0m[1mopenstack_compute_instance_v2.basic-instance01: Refreshing state... [id=3bcc0358-615b-414d-b1b8-e1cc9069d510][0m
+[0m[1mopenstack_compute_floatingip_associate_v2.fip_association: Refreshing state... [id=211.183.3.165/3bcc0358-615b-414d-b1b8-e1cc9069d510/10.10.10.117][0m
+
+[0m[1m[32mNo changes.[0m[1m Your infrastructure matches the configuration.[0m
+
+[0mTerraform has compared your real infrastructure against your configuration
+and found no differences, so no changes are needed.
+[0m[1m[32m
+Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+[0m[0m[1m[32m
+Outputs:
+
+[0mprivate_ip = "10.10.10.117"
+public_ip = "211.183.3.165"
