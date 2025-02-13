@@ -3,13 +3,24 @@ resource "aws_launch_configuration" "example" {
   instance_type = "t3.micro"
   security_groups = [aws_security_group.instance.id]
   key_name = aws_key_pair.testkey.key_name
+
+
   user_data = <<-EOF
                  #!/bin/bash
-                 echo "hello, aws" > index.html
                  sudo yum -y install httpd
+                 echo "<center><h2>HELLO ALL</h2></center>" | sudo tee /var/www/html/index.html
                  sudo sed -i '/^Listen/c\Listen ${var.server_port}' /etc/httpd/conf/httpd.conf
-		 sudo systemctl restart httpd
+                 sudo systemctl restart httpd
                  EOF
+
+#  user_data = <<-EOF
+#                 #!/bin/bash
+#                 sudo yum -y install httpd
+#                 sudo sed -i '/^Listen/c\Listen ${var.server_port}' /etc/httpd/conf/httpd.conf
+#		 sudo systemctl restart httpd
+#                 EOF
+#  associate_public_ip_address = false  # <--- 명시적으로 false로 지정
+
   lifecycle {
     create_before_destroy = true # 새로운 인스턴스 생성 후 삭제 
     # 삭제방지 
@@ -56,6 +67,7 @@ data "aws_instances" "example_instance" {
     name = "tag:Name"
     values = ["terraform-asg-example"]
   }
+
 }
 
 
@@ -63,10 +75,12 @@ resource "aws_security_group" "instance" {
   name = "terraform-example-instance"
 
   ingress {
-    from_port = var.server_port
-    to_port = var.server_port
-    protocol = "tcp"
+    description      = "Allow inbound traffic from CLB SG"
+    from_port        = var.server_port
+    to_port          = var.server_port
+    protocol         = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    #security_groups  = [aws_security_group.lb_sg.id]
   }
 
   ingress {
@@ -82,6 +96,70 @@ resource "aws_security_group" "instance" {
     from_port = 22
     to_port = 22
     protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+
+  }
+
+  egress{
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+}
+# elb > clb 구성을 위한 내용
+resource "aws_elb" "example" {
+  name               = "terraform-classic-lb"
+  #availability_zones = data.aws_subnets.default.ids
+
+  # 모든 서브넷 연결 
+  subnets = data.aws_subnets.default.ids
+
+
+  listener {
+    instance_port     = var.server_port
+    instance_protocol = "HTTP"
+    lb_port           = 80
+    lb_protocol       = "HTTP"
+  }
+
+  health_check {
+    target              = "HTTP:${var.server_port}/"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+
+  security_groups = [aws_security_group.lb_sg.id]
+  # 의존성 추가
+  depends_on = [
+    aws_autoscaling_group.example
+  ]
+  instances = data.aws_instances.example_instance.ids
+ 
+  tags = {
+    Name = "terraform-classic-lb"
+  }
+}
+
+# CLB 에서 사용할 보안 그룹
+resource "aws_security_group" "lb_sg" {
+
+  ingress {
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+
+  ingress {
+    from_port = -1
+    to_port = -1
+    protocol = "icmp"
     cidr_blocks = ["0.0.0.0/0"]
 
   }
